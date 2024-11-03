@@ -1,13 +1,7 @@
-/**
- * Sample React Native App
- * https://github.com/facebook/react-native
- *
- * @format
- */
-
-import React from 'react';
+import React, {useEffect, useState} from 'react';
 import type {PropsWithChildren} from 'react';
 import {
+  Platform,
   SafeAreaView,
   ScrollView,
   StatusBar,
@@ -16,6 +10,7 @@ import {
   useColorScheme,
   View,
 } from 'react-native';
+import CodePush, {LocalPackage} from 'react-native-code-push';
 
 import {
   Colors,
@@ -56,6 +51,8 @@ function Section({children, title}: SectionProps): JSX.Element {
 }
 
 function App(): JSX.Element {
+  useInstallCodePushUpdate();
+  const version = useGetCodePushVersion();
   const isDarkMode = useColorScheme() === 'dark';
 
   const backgroundStyle = {
@@ -76,6 +73,7 @@ function App(): JSX.Element {
           style={{
             backgroundColor: isDarkMode ? Colors.black : Colors.white,
           }}>
+          <Text>CodePush Version: {version?.label ?? 'N/A'}</Text>
           <Section title="Step One">
             Edit <Text style={styles.highlight}>App.tsx</Text> to change this
             screen and then come back to see your edits.
@@ -114,5 +112,30 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
 });
+
+const useGetCodePushVersion = () => {
+  const [version, setVersion] = useState<LocalPackage | null>(null);
+  useEffect(() => {
+    CodePush.getUpdateMetadata().then(setVersion);
+  }, []);
+  return version;
+};
+
+const useInstallCodePushUpdate = () => {
+  useEffect(() => {
+    CodePush.sync(
+      {
+        deploymentKey: Platform.select({
+          ios: process.env.CODEPUSH_DEPLOYMENT_KEY_IOS,
+          android: process.env.CODEPUSH_DEPLOYMENT_KEY_ANDROID,
+        }),
+        installMode: CodePush.InstallMode.IMMEDIATE,
+      },
+      status => {
+        console.log(`sync status: ${status}`);
+      },
+    );
+  }, []);
+};
 
 export default App;
